@@ -21,7 +21,11 @@
   URL → https://niakimbo22.github.io/Interest-Man/ · icônes PWA propres (192/512/maskable/apple).
 
 ## 🔜 À faire (prochaines sessions)
-0. ⚠️ **Activer GitHub Pages** une seule fois : Settings → Pages → Source = **GitHub Actions**.
+0. ⚠️ **Activer GitHub Pages à la main** (bloquant, une seule fois) :
+   Settings → Pages → Source = **GitHub Actions**, puis re-run le workflow.
+   Le workflow NE PEUT PAS le faire seul : créer un site Pages demande des droits admin
+   que `GITHUB_TOKEN` n'a pas (`Resource not accessible by integration`).
+   Tant que ce n'est pas fait, l'étape `configure-pages` échoue (build et tests passent).
 1. ⚠️ **Tester le coop P2P en vrai** (2 vrais téléphones) — voir pièges ci-dessous.
 2. **Effet de levier / emprunts** (risque, faillite possible) — prévu, pas encore commencé.
 3. **Empire de biens interactif** (business qui rapportent, upgrades) — style Richman ++.

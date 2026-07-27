@@ -28,11 +28,12 @@ jobs:
       - run: npm run build
         env:
           GITHUB_PAGES: 'true'
-      # enablement: active GitHub Pages automatiquement si ce n'est pas deja fait,
-      # au lieu d'echouer. Evite d'avoir a le faire a la main dans les Settings.
+      # Prerequis : Pages doit etre active a la main une fois, dans
+      # Settings > Pages > Source = "GitHub Actions".
+      # L'option `enablement: true` ne peut pas s'en charger : creer un site Pages
+      # demande des droits admin que GITHUB_TOKEN n'a pas ("Resource not accessible
+      # by integration"). Sans cette activation, l'etape ci-dessous echoue.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

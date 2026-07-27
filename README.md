@@ -5,13 +5,23 @@ Installable sur téléphone, jouable hors-ligne.
 
 ## 📱 Installer sur ton téléphone
 
-L'app est publiée sur GitHub Pages :
+L'app se publie sur GitHub Pages :
 
 **https://niakimbo22.github.io/Interest-Man/**
 
-> ⚠️ **La toute première fois**, il faut activer GitHub Pages (une seule fois) :
-> `Settings` → `Pages` → **Source : GitHub Actions**. Le déploiement se lance ensuite
-> à chaque push, et l'URL devient active en 1-2 min.
+### ⚠️ Étape obligatoire, à faire UNE SEULE FOIS
+
+Le déploiement ne peut pas activer Pages tout seul : créer un site Pages demande des
+droits admin que le token des workflows n'a pas. Il faut donc l'activer à la main :
+
+1. Va sur **https://github.com/Niakimbo22/Interest-Man/settings/pages**
+2. Section **« Build and deployment »** → **Source** → choisis **« GitHub Actions »**
+3. Retourne dans l'onglet **Actions**, ouvre le dernier déploiement et clique
+   **« Re-run all jobs »** (ou fais un nouveau push)
+
+Le site est en ligne ~1 min plus tard. Ensuite, chaque push redéploie automatiquement.
+
+> Le dépôt doit aussi être **public** (ou avoir GitHub Pro) — c'est déjà le cas ici.
 
 ### iPhone (Safari — obligatoire, ça ne marche pas dans Chrome iOS)
 1. Ouvre le lien **dans Safari**
