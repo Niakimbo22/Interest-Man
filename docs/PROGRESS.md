@@ -17,15 +17,12 @@
 - **Mode Coop** : lobby (créer/rejoindre par code), 2 rôles complémentaires, chat, sync P2P.
 - **Tests** : 16 tests verts (`npm test`) sur achat/vente/niveaux/marché/événements.
 
-- **Déploiement** : GitHub Pages via `.github/workflows/deploy.yml` (build + tests + deploy).
-  URL → https://niakimbo22.github.io/Interest-Man/ · icônes PWA propres (192/512/maskable/apple).
+- **Déploiement EN LIGNE** ✅ → **https://niakimbo22.github.io/Interest-Man/**
+  Workflow `.github/workflows/deploy.yml` (build + tests + deploy), automatique à chaque push.
+  Pages a été activé à la main (Settings → Pages → Source = GitHub Actions) : c'est fait,
+  ne pas y revenir. Icônes PWA propres (192/512/maskable/apple), installable iOS + Android.
 
 ## 🔜 À faire (prochaines sessions)
-0. ⚠️ **Activer GitHub Pages à la main** (bloquant, une seule fois) :
-   Settings → Pages → Source = **GitHub Actions**, puis re-run le workflow.
-   Le workflow NE PEUT PAS le faire seul : créer un site Pages demande des droits admin
-   que `GITHUB_TOKEN` n'a pas (`Resource not accessible by integration`).
-   Tant que ce n'est pas fait, l'étape `configure-pages` échoue (build et tests passent).
 1. ⚠️ **Tester le coop P2P en vrai** (2 vrais téléphones) — voir pièges ci-dessous.
 2. **Effet de levier / emprunts** (risque, faillite possible) — prévu, pas encore commencé.
 3. **Empire de biens interactif** (business qui rapportent, upgrades) — style Richman ++.
