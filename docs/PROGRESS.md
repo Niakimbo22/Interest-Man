@@ -17,7 +17,11 @@
 - **Mode Coop** : lobby (créer/rejoindre par code), 2 rôles complémentaires, chat, sync P2P.
 - **Tests** : 16 tests verts (`npm test`) sur achat/vente/niveaux/marché/événements.
 
+- **Déploiement** : GitHub Pages via `.github/workflows/deploy.yml` (build + tests + deploy).
+  URL → https://niakimbo22.github.io/Interest-Man/ · icônes PWA propres (192/512/maskable/apple).
+
 ## 🔜 À faire (prochaines sessions)
+0. ⚠️ **Activer GitHub Pages** une seule fois : Settings → Pages → Source = **GitHub Actions**.
 1. ⚠️ **Tester le coop P2P en vrai** (2 vrais téléphones) — voir pièges ci-dessous.
 2. **Effet de levier / emprunts** (risque, faillite possible) — prévu, pas encore commencé.
 3. **Empire de biens interactif** (business qui rapportent, upgrades) — style Richman ++.
@@ -37,6 +41,10 @@
   L'invité envoie des demandes d'ordre et reçoit l'état. Évite les conflits d'état.
 - `makeAction` de Trystero renvoie un **objet** `{send, onMessage}` (pas un tuple), et
   `onPeerJoin`/`onPeerLeave` sont des **propriétés à assigner**. Casts JSON isolés dans `p2p.ts`.
+- **Base path** : le build Pages utilise `base: '/Interest-Man/'` (activé par `GITHUB_PAGES=true`).
+  En local on reste à `/`. Le manifeste utilise `start_url: '.'` — un start_url hors du scope
+  **empêche l'installation** de la PWA.
+- Icônes régénérables : `public/icon.svg` est la source ; les PNG sont rasterisés via Chromium.
 - CoinGecko est limité en requêtes → refresh live toutes les **60 s** seulement.
 - Les prix simulés sont bornés autour du prix de base (évite les dérives absurdes en Réaliste).
 

@@ -5,6 +5,9 @@ import path from 'node:path'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Le site est publié sur GitHub Pages sous /Interest-Man/.
+  // En dev on reste à la racine pour que `npm run dev` marche normalement.
+  base: process.env.GITHUB_PAGES === 'true' ? '/Interest-Man/' : '/',
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
@@ -12,7 +15,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icon.svg'],
       manifest: {
         name: 'Interest-Man — Jeu d\'investissement',
         short_name: 'Interest-Man',
@@ -21,11 +24,14 @@ export default defineConfig({
         background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        lang: 'fr',
+        // Relatif au manifeste : marche à la racine (dev) comme sous /Interest-Man/ (Pages).
+        // Un start_url hors du scope empêcherait l'installation.
+        start_url: '.',
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
