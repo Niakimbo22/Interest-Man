@@ -28,7 +28,11 @@ jobs:
       - run: npm run build
         env:
           GITHUB_PAGES: 'true'
+      # enablement: active GitHub Pages automatiquement si ce n'est pas deja fait,
+      # au lieu d'echouer. Evite d'avoir a le faire a la main dans les Settings.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
