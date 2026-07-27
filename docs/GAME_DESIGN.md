@@ -6,6 +6,23 @@
 Jeu d'investissement mobile où on part avec un petit capital et on essaie de **devenir riche**.
 Vrais actifs, vrais ordres de grandeur, mais règles **simples et fun**. Pas une simulation.
 
+## Les 3 modes
+| Mode | Esprit | Spécificités |
+|------|--------|--------------|
+| 📊 **Réaliste** | Vrais marchés, progression posée | Volatilité ×1, départ 10 000 € |
+| 🔥 **Chaos** | Non-réaliste, krachs **inventés**, absurde et fun | Volatilité ×4, événements délirants |
+| 💼 **Business Man** | **Coop à 2** : une boîte commune avec un ami | Départ 25 000 €, rôles complémentaires, P2P |
+
+Chaque mode a sa **propre sauvegarde** : changer de mode ne détruit rien.
+
+### Mode Coop — principe directeur
+**Ce n'est PAS de la compétition, c'est de la communication.** Deux associés, **un seul
+portefeuille**. Les rôles sont volontairement **incomplets** pour qu'ils aient besoin l'un de l'autre :
+- 📈 **Trader** — seul à pouvoir acheter/vendre, mais ne voit pas les tendances.
+- 🔍 **Analyste** — voit les tendances et recommande, mais ne peut pas passer d'ordre.
+
+Connexion **P2P directe** (WebRTC/Trystero) via un code de room : aucun compte, aucun serveur.
+
 ## Piliers (validés avec le user)
 - **Vrais chiffres** : prix live via API si possible, sinon valeurs réalistes figées.
 - **Missions & niveaux** : objectifs, XP, déblocages progressifs d'actifs/fonctionnalités.

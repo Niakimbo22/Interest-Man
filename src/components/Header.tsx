@@ -2,8 +2,14 @@ import { useGame } from '@/store/gameStore'
 import { money } from '@/lib/format'
 import { levelProgress } from '@/store/leveling'
 import { Sparkline } from './Sparkline'
+import { useSession } from '@/store/sessionStore'
+import { GAME_MODES } from '@/data/gameModes'
+import { leaveCoopRoom } from '@/coop/p2p'
 
 export function Header() {
+  const mode = useSession((s) => s.mode)
+  const setMode = useSession((s) => s.setMode)
+  const modeDef = mode ? GAME_MODES[mode] : null
   const cash = useGame((s) => s.cash)
   const xp = useGame((s) => s.xp)
   const history = useGame((s) => s.netWorthHistory)
@@ -15,6 +21,21 @@ export function Header() {
 
   return (
     <header className="safe-top px-4 pt-3 pb-4 bg-gradient-to-b from-base-800 to-base-900 border-b border-base-700">
+      {/* Bandeau du mode courant + retour au menu */}
+      {modeDef && (
+        <button
+          onClick={() => {
+            leaveCoopRoom()
+            setMode(null)
+          }}
+          className="flex items-center gap-1.5 mb-2 text-[11px] text-slate-400 active:opacity-60"
+        >
+          <span>←</span>
+          <span>{modeDef.emoji}</span>
+          <span className={`font-bold ${modeDef.accent}`}>Mode {modeDef.name}</span>
+        </button>
+      )}
+
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-400">Patrimoine net</p>

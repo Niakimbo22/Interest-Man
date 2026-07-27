@@ -9,10 +9,14 @@ mécaniques **fun et simples** — un jeu, pas une simulation compliquée.
 2. Besoin de la vision/règles du jeu ? → **`docs/GAME_DESIGN.md`**.
 3. Le code est la source détaillée ; ces 2 docs orientent, ne recopie pas le code dedans.
 
+## Les 3 modes (chacun sa sauvegarde)
+📊 Réaliste · 🔥 Chaos (krachs inventés) · 💼 Business Man (**coop à 2** en P2P, entraide ≠ compétition)
+
 ## Règles d'or
-- Stack : **Vite + React + TS + Tailwind + Zustand + vite-plugin-pwa**. Recharts pour les courbes.
+- Stack : **Vite + React + TS + Tailwind + Zustand + vite-plugin-pwa**. Courbes en SVG maison.
 - State global + sauvegarde dans `src/store/` (Zustand `persist` → localStorage).
 - Prix : `src/services/prices.ts` (CoinGecko sans clé + **fallback** valeurs figées, jamais de crash).
+- Coop : P2P WebRTC via Trystero (`src/coop/p2p.ts`) — **pas de Supabase/Firebase** (quotas pleins).
 - Le jeu doit rester **jouable hors-ligne** et **mobile-first**.
 - Langue de l'UI et des docs : **français**.
 - Branche de dev : `claude/investment-game-pwa-iyt6m4`. Pas de PR sauf demande explicite.

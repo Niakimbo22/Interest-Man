@@ -1,19 +1,25 @@
-export type Tab = 'market' | 'portfolio' | 'missions'
+export type Tab = 'market' | 'portfolio' | 'missions' | 'coop'
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
+const BASE_TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'market', label: 'Marché', icon: '🛒' },
   { id: 'portfolio', label: 'Portefeuille', icon: '💼' },
   { id: 'missions', label: 'Missions', icon: '🎯' },
 ]
 
-export function TabBar({ active, onChange, missionBadge }: {
+const COOP_TAB = { id: 'coop' as Tab, label: 'La boîte', icon: '🤝' }
+
+export function TabBar({ active, onChange, missionBadge, showCoop }: {
   active: Tab
   onChange: (t: Tab) => void
   missionBadge?: number
+  showCoop?: boolean
+  coopAccent?: string
 }) {
+  const tabs = showCoop ? [...BASE_TABS, COOP_TAB] : BASE_TABS
+
   return (
     <nav className="safe-bottom bg-base-800/95 backdrop-blur border-t border-base-700 flex">
-      {TABS.map((t) => {
+      {tabs.map((t) => {
         const isActive = t.id === active
         return (
           <button

@@ -3,10 +3,15 @@ import { persist } from 'zustand/middleware'
 import { ASSETS, ASSET_BY_ID } from '@/data/assets'
 import type { Category, Position } from '@/data/types'
 import { MISSIONS, type MissionCheckCtx } from '@/data/missions'
-import { initialPrices, simulateTick } from '@/services/marketTick'
+import { applyEventImpact, initialPrices, simulateTick } from '@/services/marketTick'
+import { randomChaosEvent, type ChaosEvent } from '@/data/chaosEvents'
+import { GAME_MODES, type GameMode } from '@/data/gameModes'
+import { currentModeDef, useSession } from './sessionStore'
 import { levelForXp } from './leveling'
 
 const STARTING_CASH = 10000
+/** Probabilité qu'un événement Chaos se déclenche à chaque tick. */
+const CHAOS_EVENT_CHANCE = 0.12
 const HISTORY_MAX = 120
 const PRICE_HISTORY_MAX = 30
 
@@ -37,6 +42,9 @@ interface GameState {
   priceHistory: Record<string, number[]> // non persisté (mini-courbes)
   lastTickAt: number
   liveIds: string[]
+  // --- mode Chaos ---
+  activeEvent: ChaosEvent | null
+  eventLog: { id: string; headline: string; emoji: string; tone: string; at: number }[]
   // --- flags ---
   hasHydrated: boolean
 
@@ -53,6 +61,9 @@ interface GameState {
   marketTick: () => void
   claimMission: (id: string) => void
   resetGame: () => void
+  dismissEvent: () => void
+  /** Applique un état reçu d'un coéquipier (mode Coop). */
+  applyRemoteState: (patch: Partial<GameState>) => void
   _refreshMissions: () => void
 }
 
@@ -77,6 +88,24 @@ const initialMissionStatus: Record<string, MissionStatus> = Object.fromEntries(
   MISSIONS.map((m) => [m.id, 'active' as MissionStatus]),
 )
 
+/** État d'une partie neuve, pour un cash de départ donné (varie selon le mode). */
+function freshState(startingCash: number) {
+  return {
+    cash: startingCash,
+    xp: 0,
+    netWorthHistory: [startingCash],
+    missionStatus: { ...initialMissionStatus },
+    positions: {},
+    prices: initialPrices(),
+    prevPrices: initialPrices(),
+    priceHistory: pushPriceHistory({}, initialPrices()),
+    lastTickAt: 0,
+    liveIds: [],
+    activeEvent: null,
+    eventLog: [],
+  }
+}
+
 export const useGame = create<GameState>()(
   persist(
     (set, get) => ({
@@ -90,6 +119,8 @@ export const useGame = create<GameState>()(
       priceHistory: pushPriceHistory({}, initialPrices()),
       lastTickAt: 0,
       liveIds: [],
+      activeEvent: null,
+      eventLog: [],
       hasHydrated: false,
 
       level: () => levelForXp(get().xp),
@@ -157,9 +188,18 @@ export const useGame = create<GameState>()(
 
       marketTick: () => {
         const state = get()
+        const mode = currentModeDef()
         const liveSet = new Set(state.liveIds)
-        const simulated = simulateTick(state.prices, liveSet)
-        const nextPrices = { ...state.prices, ...simulated }
+        const simulated = simulateTick(state.prices, liveSet, mode.volatilityMultiplier)
+        let nextPrices = { ...state.prices, ...simulated }
+
+        // Mode Chaos : un événement délirant peut frapper le marché.
+        let firedEvent: ChaosEvent | null = null
+        if (mode.chaosEvents && Math.random() < CHAOS_EVENT_CHANCE) {
+          firedEvent = randomChaosEvent()
+          nextPrices = applyEventImpact(nextPrices, firedEvent.target, firedEvent.impact)
+        }
+
         const nw = computeNetWorth(state.cash, state.positions, nextPrices)
         const history = [...state.netWorthHistory, nw].slice(-HISTORY_MAX)
         set({
@@ -168,7 +208,23 @@ export const useGame = create<GameState>()(
           priceHistory: pushPriceHistory(state.priceHistory, nextPrices),
           netWorthHistory: history,
           lastTickAt: Date.now(),
+          ...(firedEvent
+            ? {
+                activeEvent: firedEvent,
+                eventLog: [
+                  { id: firedEvent.id, headline: firedEvent.headline, emoji: firedEvent.emoji, tone: firedEvent.tone, at: Date.now() },
+                  ...state.eventLog,
+                ].slice(0, 20),
+              }
+            : {}),
         })
+        get()._refreshMissions()
+      },
+
+      dismissEvent: () => set({ activeEvent: null }),
+
+      applyRemoteState: (patch) => {
+        set(patch as Partial<GameState>)
         get()._refreshMissions()
       },
 
@@ -209,21 +265,10 @@ export const useGame = create<GameState>()(
         if (changed) set({ missionStatus: nextStatus })
       },
 
-      resetGame: () =>
-        set({
-          cash: STARTING_CASH,
-          xp: 0,
-          netWorthHistory: [STARTING_CASH],
-          missionStatus: { ...initialMissionStatus },
-          positions: {},
-          prices: initialPrices(),
-          prevPrices: initialPrices(),
-          lastTickAt: 0,
-          liveIds: [],
-        }),
+      resetGame: () => set(freshState(currentModeDef().startingCash)),
     }),
     {
-      name: 'interest-man-save-v1',
+      name: GAME_MODES.realiste.storageKey,
       partialize: (s) => ({
         cash: s.cash,
         xp: s.xp,
@@ -234,6 +279,7 @@ export const useGame = create<GameState>()(
         prevPrices: s.prevPrices,
         lastTickAt: s.lastTickAt,
         liveIds: s.liveIds,
+        eventLog: s.eventLog,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -253,3 +299,22 @@ export const useGame = create<GameState>()(
     },
   ),
 )
+
+/**
+ * Bascule vers un autre mode de jeu.
+ * Chaque mode possède son propre slot localStorage → changer de mode ne détruit
+ * jamais la partie en cours d'un autre mode. Si le slot est vide, on démarre une
+ * partie neuve avec le cash de départ du mode.
+ */
+export async function switchGameMode(mode: GameMode) {
+  const def = GAME_MODES[mode]
+  useSession.getState().setMode(mode)
+  useGame.persist.setOptions({ name: def.storageKey })
+
+  const hasSave = typeof localStorage !== 'undefined' && localStorage.getItem(def.storageKey) !== null
+  if (hasSave) {
+    await useGame.persist.rehydrate()
+  } else {
+    useGame.setState(freshState(def.startingCash))
+  }
+}

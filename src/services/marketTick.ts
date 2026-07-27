@@ -17,19 +17,41 @@ function gaussian(): number {
 export function simulateTick(
   current: Record<string, number>,
   liveIds: Set<string>,
+  volatilityMultiplier = 1,
 ): Record<string, number> {
   const next: Record<string, number> = {}
+  // En mode Chaos les prix peuvent partir bien plus loin qu'en Réaliste.
+  const spread = Math.max(1, volatilityMultiplier)
   for (const asset of ASSETS) {
     if (liveIds.has(asset.id)) continue
     const price = current[asset.id] ?? asset.basePrice
     // dérive aléatoire + rappel doux vers le prix de base (mean reversion)
-    const shock = gaussian() * asset.volatility
-    const reversion = (asset.basePrice - price) / asset.basePrice * 0.05
+    const shock = gaussian() * asset.volatility * volatilityMultiplier
+    const reversion = ((asset.basePrice - price) / asset.basePrice) * 0.05
     const newPrice = price * (1 + shock + reversion)
-    // garde le prix dans une fourchette réaliste [40%, 300%] du prix de base
-    const min = asset.basePrice * 0.4
-    const max = asset.basePrice * 3
+    // garde le prix dans une fourchette plausible autour du prix de base
+    const min = asset.basePrice * (0.4 / spread)
+    const max = asset.basePrice * 3 * spread
     next[asset.id] = Math.min(max, Math.max(min, newPrice))
+  }
+  return next
+}
+
+/** Applique l'impact d'un événement Chaos aux prix concernés. */
+export function applyEventImpact(
+  prices: Record<string, number>,
+  target: { kind: 'category'; category: string } | { kind: 'asset'; assetId: string } | { kind: 'all' },
+  impact: number,
+): Record<string, number> {
+  const next = { ...prices }
+  for (const asset of ASSETS) {
+    const hit =
+      target.kind === 'all' ||
+      (target.kind === 'category' && asset.category === target.category) ||
+      (target.kind === 'asset' && asset.id === target.assetId)
+    if (!hit) continue
+    const price = next[asset.id] ?? asset.basePrice
+    next[asset.id] = Math.max(asset.basePrice * 0.02, price * (1 + impact))
   }
   return next
 }

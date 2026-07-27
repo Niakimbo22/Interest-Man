@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useGame } from '@/store/gameStore'
 import { ASSET_BY_ID } from '@/data/assets'
 import { money, price as fmtPrice, qty as fmtQty, change, pct } from '@/lib/format'
+import { useCoop } from '@/coop/coopStore'
+import { requestTrade, sendCoopMessage } from '@/coop/p2p'
 
 type Mode = 'buy' | 'sell'
 
@@ -18,6 +20,11 @@ export function TradeSheet({ assetId, onClose }: { assetId: string; onClose: () 
   const [amount, setAmount] = useState(0) // montant en euros
   const [flash, setFlash] = useState<{ ok: boolean; msg: string } | null>(null)
 
+  // Mode Coop : seul le Trader passe les ordres. L'Analyste, lui, recommande.
+  const coopRole = useCoop((s) => s.role)
+  const inCoopRoom = useCoop((s) => s.roomCode !== null)
+  const isAnalyst = inCoopRoom && coopRole === 'analyste'
+
   const holdingsValue = (position?.quantity ?? 0) * priceNow
   const maxAmount = mode === 'buy' ? cash : holdingsValue
   const quantity = priceNow > 0 ? amount / priceNow : 0
@@ -25,9 +32,25 @@ export function TradeSheet({ assetId, onClose }: { assetId: string; onClose: () 
 
   const presets = useMemo(() => [0.1, 0.25, 0.5, 1], [])
 
+  /** L'Analyste ne peut pas acheter : il envoie une recommandation à son associé. */
+  const recommend = () => {
+    const verb = mode === 'buy' ? 'acheter' : 'vendre'
+    sendCoopMessage(
+      `Je recommande de ${verb} ${def.name}${amount > 0 ? ` pour ${money(amount)}` : ''} — prix actuel ${fmtPrice(priceNow)}.`,
+      assetId,
+    )
+    setFlash({ ok: true, msg: 'Recommandation envoyée à ton associé 📨' })
+    setTimeout(onClose, 700)
+  }
+
   const submit = () => {
     if (amount <= 0) return
-    const res = mode === 'buy' ? buy(assetId, quantity) : sell(assetId, quantity)
+    // En coop, l'ordre passe par l'hôte de la partie (autorité sur le portefeuille commun).
+    const res = inCoopRoom
+      ? requestTrade(mode, assetId, quantity)
+      : mode === 'buy'
+        ? buy(assetId, quantity)
+        : sell(assetId, quantity)
     if (res.ok) {
       setFlash({ ok: true, msg: mode === 'buy' ? 'Achat effectué ✅' : 'Vente effectuée ✅' })
       setAmount(0)
@@ -103,13 +126,24 @@ export function TradeSheet({ assetId, onClose }: { assetId: string; onClose: () 
           </p>
         )}
 
-        <button
-          onClick={submit}
-          disabled={amount <= 0 || amount > maxAmount + 1e-6}
-          className={`btn w-full ${mode === 'buy' ? 'btn-buy' : 'btn-sell'}`}
-        >
-          {mode === 'buy' ? 'Confirmer l\'achat' : 'Confirmer la vente'}
-        </button>
+        {isAnalyst ? (
+          <>
+            <button onClick={recommend} className="btn bg-gold text-base-900 w-full">
+              🔍 Recommander à mon associé
+            </button>
+            <p className="text-center text-[11px] text-slate-400 mt-2">
+              En tant qu'Analyste tu ne passes pas les ordres — c'est ton Trader qui décide.
+            </p>
+          </>
+        ) : (
+          <button
+            onClick={submit}
+            disabled={amount <= 0 || amount > maxAmount + 1e-6}
+            className={`btn w-full ${mode === 'buy' ? 'btn-buy' : 'btn-sell'}`}
+          >
+            {mode === 'buy' ? 'Confirmer l\'achat' : 'Confirmer la vente'}
+          </button>
+        )}
       </div>
 
       <style>{`@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
