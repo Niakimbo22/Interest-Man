@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #0b1120;
+  color: #e2e8f0;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* Zone sûre iOS (encoches / barre home) */
+.safe-bottom {
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+}
+.safe-top {
+  padding-top: calc(0.5rem + env(safe-area-inset-top));
+}
+
+@layer components {
+  .card {
+    @apply bg-base-800/80 border border-base-700 rounded-2xl;
+  }
+  .btn {
+    @apply rounded-xl px-4 py-2.5 font-semibold transition active:scale-95 disabled:opacity-40 disabled:active:scale-100;
+  }
+  .btn-buy { @apply bg-gain/90 text-white; }
+  .btn-sell { @apply bg-loss/90 text-white; }
+  .btn-ghost { @apply bg-base-700 text-slate-200; }
+}
