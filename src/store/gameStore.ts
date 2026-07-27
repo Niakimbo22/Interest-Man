@@ -7,13 +7,15 @@ import { applyEventImpact, initialPrices, simulateTick } from '@/services/market
 import { randomChaosEvent, type ChaosEvent } from '@/data/chaosEvents'
 import { GAME_MODES, type GameMode } from '@/data/gameModes'
 import { currentModeDef, useSession } from './sessionStore'
+import { seedAllHistory, seedSeries } from '@/services/history'
 import { levelForXp } from './leveling'
 
 const STARTING_CASH = 10000
 /** Probabilité qu'un événement Chaos se déclenche à chaque tick. */
 const CHAOS_EVENT_CHANCE = 0.12
 const HISTORY_MAX = 120
-const PRICE_HISTORY_MAX = 30
+/** Historique pré-généré (90 j) + la séance en cours. */
+const PRICE_HISTORY_MAX = 180
 
 function pushPriceHistory(
   hist: Record<string, number[]>,
@@ -21,7 +23,8 @@ function pushPriceHistory(
 ): Record<string, number[]> {
   const next: Record<string, number[]> = {}
   for (const a of ASSETS) {
-    const series = hist[a.id] ?? [a.basePrice]
+    // Jamais de série vide : sinon les courbes s'affichent plates au lancement.
+    const series = hist[a.id]?.length ? hist[a.id] : seedSeries(a)
     next[a.id] = [...series, prices[a.id] ?? a.basePrice].slice(-PRICE_HISTORY_MAX)
   }
   return next
@@ -98,7 +101,7 @@ function freshState(startingCash: number) {
     positions: {},
     prices: initialPrices(),
     prevPrices: initialPrices(),
-    priceHistory: pushPriceHistory({}, initialPrices()),
+    priceHistory: seedAllHistory(),
     lastTickAt: 0,
     liveIds: [],
     activeEvent: null,
@@ -116,7 +119,7 @@ export const useGame = create<GameState>()(
       positions: {},
       prices: initialPrices(),
       prevPrices: initialPrices(),
-      priceHistory: pushPriceHistory({}, initialPrices()),
+      priceHistory: seedAllHistory(),
       lastTickAt: 0,
       liveIds: [],
       activeEvent: null,
@@ -292,8 +295,9 @@ export const useGame = create<GameState>()(
           for (const m of MISSIONS) {
             if (state.missionStatus[m.id] === undefined) state.missionStatus[m.id] = 'active'
           }
-          // Les mini-courbes ne sont pas persistées : on les réamorce sur les prix sauvegardés.
-          state.priceHistory = pushPriceHistory({}, state.prices)
+          // Les courbes ne sont pas persistées : on les régénère (série déterministe),
+          // puis on recale la fin sur les prix réellement sauvegardés.
+          state.priceHistory = pushPriceHistory(seedAllHistory(), state.prices)
         }
       },
     },

@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { useGame } from './gameStore'
 import { levelForXp, levelProgress } from './leveling'
 import { applyEventImpact, simulateTick } from '@/services/marketTick'
-import { ASSET_BY_ID } from '@/data/assets'
+import { ASSETS, ASSET_BY_ID } from '@/data/assets'
+import { changeOverWindow, seedAllHistory, HISTORY_DAYS } from '@/services/history'
 
 function reset(cash = 10000) {
   useGame.setState({
@@ -143,5 +144,64 @@ describe('marché', () => {
   it('ne fait jamais tomber un prix à zéro', () => {
     const next = applyEventImpact({ gold: 2000 }, { kind: 'all' }, -0.99)
     expect(next.gold).toBeGreaterThan(0)
+  })
+})
+
+describe('historique et réalisme', () => {
+  it('génère une vraie courbe dès le départ (pas 1 seul point)', () => {
+    const h = seedAllHistory()
+    expect(h.btc.length).toBe(HISTORY_DAYS)
+    // une courbe, pas une ligne plate
+    expect(new Set(h.btc.map((v) => Math.round(v))).size).toBeGreaterThan(20)
+  })
+
+  it('termine chaque série sur le prix de départ réaliste', () => {
+    const h = seedAllHistory()
+    for (const a of ASSETS) {
+      expect(h[a.id][h[a.id].length - 1]).toBeCloseTo(a.basePrice, 4)
+    }
+  })
+
+  it('garde les variations mensuelles dans des bornes plausibles', () => {
+    const h = seedAllHistory()
+    // Les actions/métaux ne doivent pas faire +80 % en un mois.
+    for (const id of ['aapl', 'mc', 'gold', 'silver', 'studio']) {
+      expect(Math.abs(changeOverWindow(h[id], 30))).toBeLessThan(0.35)
+    }
+  })
+
+  it('corrèle les actifs d\'un même secteur', () => {
+    const h = seedAllHistory()
+    const returns = (s: number[]) => s.slice(1).map((v, i) => (v - s[i]) / s[i])
+    const corr = (a: number[], b: number[]) => {
+      const ma = a.reduce((x, y) => x + y, 0) / a.length
+      const mb = b.reduce((x, y) => x + y, 0) / b.length
+      let num = 0, da = 0, db = 0
+      for (let i = 0; i < a.length; i++) {
+        num += (a[i] - ma) * (b[i] - mb)
+        da += (a[i] - ma) ** 2
+        db += (b[i] - mb) ** 2
+      }
+      return num / Math.sqrt(da * db)
+    }
+    // Deux cryptos doivent bouger ensemble au quotidien (facteur sectoriel fort).
+    expect(corr(returns(h.btc), returns(h.eth))).toBeGreaterThan(0.5)
+    // Deux actions aussi, un peu moins fortement.
+    expect(corr(returns(h.aapl), returns(h.mc))).toBeGreaterThan(0.3)
+    // Mais crypto et immobilier ne doivent PAS être fortement liés.
+    expect(corr(returns(h.btc), returns(h.studio))).toBeLessThan(0.5)
+  })
+
+  it('un tick ne déplace le prix que très peu (bug du +80 % en 30 s)', () => {
+    let prices: Record<string, number> = { aapl: 205 }
+    for (let i = 0; i < 10; i++) prices = { ...prices, ...simulateTick(prices, new Set()) }
+    // 10 ticks ≈ 1 minute de jeu : la variation doit rester marginale
+    expect(Math.abs(prices.aapl - 205) / 205).toBeLessThan(0.05)
+  })
+
+  it('calcule la variation sur la fenêtre demandée', () => {
+    expect(changeOverWindow([100, 110], 1)).toBeCloseTo(0.1)
+    expect(changeOverWindow([100, 50], 1)).toBeCloseTo(-0.5)
+    expect(changeOverWindow([100], 1)).toBe(0)
   })
 })

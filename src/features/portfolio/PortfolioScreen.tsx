@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useGame } from '@/store/gameStore'
 import { ASSET_BY_ID, CATEGORY_LABELS } from '@/data/assets'
 import { money, price as fmtPrice, qty as fmtQty, pct } from '@/lib/format'
+import { AssetLogo } from '@/components/AssetLogo'
 import { TradeSheet } from '../market/TradeSheet'
 
 function NetWorthChart({ data }: { data: number[] }) {
@@ -110,7 +111,7 @@ export function PortfolioScreen() {
                 onClick={() => setTradingId(p.assetId)}
                 className="w-full card px-3 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition"
               >
-                <div className="text-2xl w-8 text-center shrink-0">{def.emoji}</div>
+                <AssetLogo assetId={def.id} symbol={def.symbol} size={36} />
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-white truncate">{def.name}</p>
                   <p className="text-xs text-slate-400">

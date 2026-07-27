@@ -1,23 +1,30 @@
 import { useState } from 'react'
-import { ASSETS, CATEGORY_EMOJI, CATEGORY_LABELS } from '@/data/assets'
+import { ASSETS, CATEGORY_LABELS } from '@/data/assets'
 import type { Category } from '@/data/types'
 import { useGame } from '@/store/gameStore'
-import { price as fmtPrice, pct, change } from '@/lib/format'
+import { price as fmtPrice, pct } from '@/lib/format'
 import { Sparkline } from '@/components/Sparkline'
+import { AssetLogo } from '@/components/AssetLogo'
+import { changeOverWindow } from '@/services/history'
 import { TradeSheet } from './TradeSheet'
+
+/** Fenêtre affichée dans la liste : 30 derniers jours. */
+const ROW_WINDOW = 30
 
 const CATEGORIES: Category[] = ['crypto', 'metal', 'stock', 'realestate']
 
 function AssetRow({ assetId, onTrade }: { assetId: string; onTrade: (id: string) => void }) {
   const def = ASSETS.find((a) => a.id === assetId)!
   const priceNow = useGame((s) => s.prices[assetId] ?? def.basePrice)
-  const prevPrice = useGame((s) => s.prevPrices[assetId] ?? def.basePrice)
   const history = useGame((s) => s.priceHistory[assetId])
   const owned = useGame((s) => s.positions[assetId]?.quantity ?? 0)
   const unlocked = useGame((s) => s.isUnlocked(assetId))
   const isLive = useGame((s) => s.liveIds.includes(assetId))
 
-  const chg = change(priceNow, prevPrice)
+  // La courbe et le % portent sur la MÊME fenêtre : sinon on affichait un
+  // pourcentage vert au-dessus d'une courbe rouge.
+  const series = (history ?? []).slice(-ROW_WINDOW)
+  const chg = changeOverWindow(history, ROW_WINDOW)
 
   return (
     <button
@@ -27,7 +34,7 @@ function AssetRow({ assetId, onTrade }: { assetId: string; onTrade: (id: string)
         unlocked ? '' : 'opacity-50'
       }`}
     >
-      <div className="text-2xl w-8 text-center shrink-0">{def.emoji}</div>
+      <AssetLogo assetId={def.id} symbol={def.symbol} size={36} />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
@@ -45,13 +52,14 @@ function AssetRow({ assetId, onTrade }: { assetId: string; onTrade: (id: string)
         </p>
       </div>
 
-      <Sparkline data={history ?? []} width={52} height={22} />
+      <Sparkline data={series} width={64} height={30} positive={chg >= 0} />
 
-      <div className="text-right shrink-0 w-24">
+      <div className="text-right shrink-0 w-[88px]">
         <p className="font-bold text-white tabular-nums text-sm">{fmtPrice(priceNow)}</p>
         <p className={`text-xs font-semibold tabular-nums ${chg >= 0 ? 'text-gain' : 'text-loss'}`}>
           {pct(chg)}
         </p>
+        <p className="text-[9px] text-slate-500">30 j</p>
       </div>
     </button>
   )
@@ -83,7 +91,7 @@ export function MarketScreen() {
               filter === c ? 'bg-brand text-base-900' : 'bg-base-700 text-slate-300'
             }`}
           >
-            {CATEGORY_EMOJI[c]} {CATEGORY_LABELS[c]}
+            {CATEGORY_LABELS[c]}
           </button>
         ))}
       </div>

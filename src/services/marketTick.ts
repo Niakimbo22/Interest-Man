@@ -14,6 +14,13 @@ function gaussian(): number {
  * @param current  prix courants { assetId: prix }
  * @param liveIds  ids gérés en live (crypto) → on NE les simule PAS ici.
  */
+/**
+ * `asset.volatility` est une volatilité JOURNALIÈRE (elle sert aussi à générer
+ * l'historique). Un tick ne vaut pas une journée : sans ce facteur, quelques
+ * secondes de jeu suffisaient à faire +80 % sur une action. Un tick ≈ 1/40e de séance.
+ */
+const TICK_SCALE = 0.025
+
 export function simulateTick(
   current: Record<string, number>,
   liveIds: Set<string>,
@@ -25,9 +32,9 @@ export function simulateTick(
   for (const asset of ASSETS) {
     if (liveIds.has(asset.id)) continue
     const price = current[asset.id] ?? asset.basePrice
-    // dérive aléatoire + rappel doux vers le prix de base (mean reversion)
-    const shock = gaussian() * asset.volatility * volatilityMultiplier
-    const reversion = ((asset.basePrice - price) / asset.basePrice) * 0.05
+    // dérive aléatoire + rappel très doux vers le prix de base (mean reversion)
+    const shock = gaussian() * asset.volatility * TICK_SCALE * volatilityMultiplier
+    const reversion = ((asset.basePrice - price) / asset.basePrice) * 0.002
     const newPrice = price * (1 + shock + reversion)
     // garde le prix dans une fourchette plausible autour du prix de base
     const min = asset.basePrice * (0.4 / spread)
